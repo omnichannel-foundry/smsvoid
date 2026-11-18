@@ -269,3 +269,29 @@ Remaining gaps and limitations (see table above):
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 
 Copyright (c) 2026 Antonio Ognio.
+
+## Runtime discovery and filesystem layout
+
+SmsVoid resolves its installation mode from the executable location (via `os.Executable()` with symlink resolution), never from the current working directory.
+
+Recognized locations:
+
+- System: `/usr/bin`, `/usr/sbin`, `/usr/local/bin`, `/usr/local/sbin`
+- User: `~/.local/bin`, `~/bin`
+- Anything else: development mode
+
+Conventional paths:
+
+- System: config `/etc/smsvoid/config.toml`, data `/var/lib/smsvoid`, cache `/var/cache/smsvoid`, runtime `/run/smsvoid`, logs `/var/log/smsvoid`
+- User: XDG base directories (`~/.config/smsvoid`, `~/.local/share/smsvoid`, `~/.local/state/smsvoid`, `~/.cache/smsvoid`, `$XDG_RUNTIME_DIR/smsvoid`)
+- Development: config next to the executable, data/state/cache/runtime/logs under `<project>/.local/`
+
+Configuration precedence (highest to lowest): explicit `--config` path, existing environment variables, conventional TOML file, built-in defaults. An explicit path is authoritative and errors if missing or invalid. Conventional TOML uses `config.toml`.
+
+CLI diagnostics:
+
+- `--info` — print effective paths (read-only)
+- `--doctor` — check paths, files, and permissions (read-only)
+- `--init` — create a default config file without overwriting
+- `--version` — print version
+- `--config /path/to/config.toml` — explicit configuration override

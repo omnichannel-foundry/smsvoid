@@ -8,6 +8,8 @@ import (
 	"github.com/gnrfan/smsvoid/internal/smpp"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	_ "github.com/mattn/go-sqlite3"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -32,6 +34,13 @@ func Open(driver, dsn string) (*Store, error) {
 		d = "pgx"
 	} else if d == "sqlite" {
 		d = "sqlite3"
+	}
+	if driver == "sqlite" {
+		if dir := filepath.Dir(dsn); dir != "" && dir != "." {
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				return nil, err
+			}
+		}
 	}
 	db, e := sql.Open(d, dsn)
 	if e != nil {
