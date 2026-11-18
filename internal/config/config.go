@@ -180,7 +180,7 @@ func WriteDefaultConfig(path string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return err
 	}
-	return os.WriteFile(path, []byte(DefaultConfigTemplate()), 0644)
+	return os.WriteFile(path, []byte(DefaultConfigTemplate()), 0600)
 }
 
 // Convenience aliases for runtime discovery.
