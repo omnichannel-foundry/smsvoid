@@ -34,7 +34,7 @@ GO      ?= go
 GOFLAGS ?=
 
 # Extra arguments for `make run` / `make test`:
-#   make run ARGS='--smpp-addr :2776'
+#   make run ARGS='-smpp-addr :2776 -http-user admin -http-pass admin'
 #   make test ARGS='-run TestParseSubmit -v'
 ARGS ?=
 

@@ -209,6 +209,15 @@ make tidy-check     # fail if go.mod/go.sum are untidy
 make clean          # remove build artifacts
 ```
 
+Run with authentication and filtered queries:
+
+```sh
+make run ARGS='-smpp-user demo -smpp-pass secret -http-user admin -http-pass admin'
+curl -u admin:admin 'http://localhost:8025/api/v1/messages?source=100&q=hello&limit=50'
+curl -u admin:admin http://localhost:8025/healthz
+curl -u admin:admin http://localhost:8025/metrics
+```
+
 Equivalently, without make:
 
 ```sh
