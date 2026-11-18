@@ -1,0 +1,20 @@
+# Engineering memory workspace (independent git repository)
+.development/
+
+# Build artifacts
+bin/
+*.exe
+*.test
+*.out
+coverage.out
+
+# SQLite databases
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
