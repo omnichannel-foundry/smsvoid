@@ -182,3 +182,15 @@ func WriteDefaultConfig(path string) error {
 	}
 	return os.WriteFile(path, []byte(DefaultConfigTemplate()), 0644)
 }
+
+// Convenience aliases for runtime discovery.
+type Mode = runtime.Mode
+type Paths = runtime.Paths
+type RuntimePaths = runtime.Paths
+
+func DetectMode(args ...interface{}) Mode    { return runtime.DetectMode(args...) }
+func Resolve(args ...interface{}) Paths      { return runtime.Resolve(args...) }
+func ResolvePaths(args ...interface{}) Paths { return runtime.ResolvePaths(args...) }
+func DiscoverConfig(args ...interface{}) (string, bool, error) {
+	return runtime.DiscoverConfig(args...)
+}

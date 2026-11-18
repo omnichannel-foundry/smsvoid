@@ -17,24 +17,14 @@ const (
 	ModeSystem      = runtime.ModeSystem
 )
 
-func ExecutablePath() (string, error)          { return runtime.ExecutablePath() }
-func DetectMode(execPath, homeDir string) Mode { return runtime.DetectMode(execPath, homeDir) }
-func DetectInstallationMode(execPath, homeDir string) Mode {
-	return runtime.DetectInstallationMode(execPath, homeDir)
+func ExecutablePath() (string, error)                 { return runtime.ExecutablePath() }
+func DetectMode(args ...interface{}) Mode             { return runtime.DetectMode(args...) }
+func DetectInstallationMode(args ...interface{}) Mode { return runtime.DetectInstallationMode(args...) }
+func Resolve(args ...interface{}) Paths               { return runtime.Resolve(args...) }
+func ResolvePaths(args ...interface{}) Paths          { return runtime.ResolvePaths(args...) }
+func ResolveRuntime(args ...interface{}) Paths        { return runtime.ResolveRuntime(args...) }
+func DiscoverConfig(args ...interface{}) (string, bool, error) {
+	return runtime.DiscoverConfig(args...)
 }
-func Resolve(execPath, homeDir string, getenv func(string) string) Paths {
-	return runtime.Resolve(execPath, homeDir, getenv)
-}
-func ResolvePaths(execPath, homeDir string, getenv func(string) string) Paths {
-	return runtime.ResolvePaths(execPath, homeDir, getenv)
-}
-func ResolveRuntime(execPath, homeDir string, getenv func(string) string) Paths {
-	return runtime.ResolveRuntime(execPath, homeDir, getenv)
-}
-func DiscoverConfig(paths Paths, explicit string) (string, bool, error) {
-	return runtime.DiscoverConfig(paths, explicit)
-}
-func FindConfig(paths Paths, explicit string) (string, bool, error) {
-	return runtime.FindConfig(paths, explicit)
-}
-func ConfigPath(paths Paths, explicit string) string { return runtime.ConfigPath(paths, explicit) }
+func FindConfig(args ...interface{}) (string, bool, error) { return runtime.FindConfig(args...) }
+func ConfigPath(args ...interface{}) string                { return runtime.ConfigPath(args...) }

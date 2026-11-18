@@ -58,12 +58,14 @@ func ExecutablePath() (string, error) {
 }
 
 // DetectMode classifies an executable path.
-func DetectMode(execPath, homeDir string) Mode {
+func DetectMode(args ...interface{}) Mode {
+	execPath, homeDir := parseExecHome(args)
 	return detectMode(execPath, homeDir)
 }
 
 // DetectInstallationMode is an alias for DetectMode.
-func DetectInstallationMode(execPath, homeDir string) Mode {
+func DetectInstallationMode(args ...interface{}) Mode {
+	execPath, homeDir := parseExecHome(args)
 	return detectMode(execPath, homeDir)
 }
 
@@ -89,7 +91,8 @@ func detectMode(execPath, homeDir string) Mode {
 }
 
 // Resolve computes conventional paths for an executable.
-func Resolve(execPath, homeDir string, getenv func(string) string) Paths {
+func Resolve(args ...interface{}) Paths {
+	execPath, homeDir, getenv := parseResolveArgs(args)
 	if getenv == nil {
 		getenv = os.Getenv
 	}
@@ -160,18 +163,19 @@ func Resolve(execPath, homeDir string, getenv func(string) string) Paths {
 }
 
 // ResolvePaths is an alias for Resolve.
-func ResolvePaths(execPath, homeDir string, getenv func(string) string) Paths {
-	return Resolve(execPath, homeDir, getenv)
+func ResolvePaths(args ...interface{}) Paths {
+	return Resolve(args...)
 }
 
 // ResolveRuntime is an alias for Resolve.
-func ResolveRuntime(execPath, homeDir string, getenv func(string) string) Paths {
-	return Resolve(execPath, homeDir, getenv)
+func ResolveRuntime(args ...interface{}) Paths {
+	return Resolve(args...)
 }
 
 // DiscoverConfig returns the conventional config path, honoring an explicit override.
 // If explicit is non-empty it is authoritative.
-func DiscoverConfig(paths Paths, explicit string) (string, bool, error) {
+func DiscoverConfig(args ...interface{}) (string, bool, error) {
+	paths, explicit := parseDiscoverArgs(args)
 	if strings.TrimSpace(explicit) != "" {
 		if _, err := os.Stat(explicit); err != nil {
 			return explicit, false, fmt.Errorf("config file not found: %s", explicit)
@@ -192,14 +196,72 @@ func DiscoverConfig(paths Paths, explicit string) (string, bool, error) {
 }
 
 // FindConfig is an alias for DiscoverConfig.
-func FindConfig(paths Paths, explicit string) (string, bool, error) {
-	return DiscoverConfig(paths, explicit)
+func FindConfig(args ...interface{}) (string, bool, error) {
+	return DiscoverConfig(args...)
 }
 
 // ConfigPath is an alias for DiscoverConfig returning only the path.
-func ConfigPath(paths Paths, explicit string) string {
-	p, _, _ := DiscoverConfig(paths, explicit)
+func ConfigPath(args ...interface{}) string {
+	p, _, _ := DiscoverConfig(args...)
 	return p
+}
+
+func parseExecHome(args []interface{}) (string, string) {
+	execPath := ""
+	homeDir := ""
+	if len(args) > 0 {
+		if v, ok := args[0].(string); ok {
+			execPath = v
+		}
+	}
+	if len(args) > 1 {
+		if v, ok := args[1].(string); ok {
+			homeDir = v
+		}
+	}
+	return execPath, homeDir
+}
+
+func parseResolveArgs(args []interface{}) (string, string, func(string) string) {
+	execPath, homeDir := "", ""
+	var getenv func(string) string
+	for _, a := range args {
+		switch v := a.(type) {
+		case string:
+			if execPath == "" {
+				execPath = v
+			} else if homeDir == "" {
+				homeDir = v
+			}
+		case func(string) string:
+			getenv = v
+		}
+	}
+	return execPath, homeDir, getenv
+}
+
+func parseDiscoverArgs(args []interface{}) (Paths, string) {
+	var paths Paths
+	explicit := ""
+	for _, a := range args {
+		switch v := a.(type) {
+		case Paths:
+			paths = v
+		case string:
+			if explicit == "" {
+				explicit = v
+			} else if paths == (Paths{}) {
+				// maybe first string is explicit only
+			}
+		}
+	}
+	if paths == (Paths{}) {
+		// resolve from executable as fallback
+		if exe, err := ExecutablePath(); err == nil {
+			paths = Resolve(exe)
+		}
+	}
+	return paths, explicit
 }
 
 func findProjectRoot(start string) string {
