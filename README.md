@@ -239,4 +239,6 @@ Known gaps and limitations (see table above):
 
 ## License
 
-No license file is currently present in this repository. Add one before distributing the software.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+Copyright (c) 2026 Antonio Ognio.
