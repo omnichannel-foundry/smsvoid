@@ -13,8 +13,11 @@ type Dirs = runtime.Dirs
 
 const (
 	ModeDevelopment = runtime.ModeDevelopment
+	Development     = runtime.Development
 	ModeUser        = runtime.ModeUser
+	User            = runtime.User
 	ModeSystem      = runtime.ModeSystem
+	System          = runtime.System
 )
 
 func ExecutablePath() (string, error)                 { return runtime.ExecutablePath() }

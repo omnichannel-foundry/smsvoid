@@ -188,6 +188,15 @@ type Mode = runtime.Mode
 type Paths = runtime.Paths
 type RuntimePaths = runtime.Paths
 
+const (
+	ModeDevelopment = runtime.ModeDevelopment
+	ModeUser        = runtime.ModeUser
+	ModeSystem      = runtime.ModeSystem
+	Development     = runtime.Development
+	User            = runtime.User
+	System          = runtime.System
+)
+
 func DetectMode(args ...interface{}) Mode    { return runtime.DetectMode(args...) }
 func Resolve(args ...interface{}) Paths      { return runtime.Resolve(args...) }
 func ResolvePaths(args ...interface{}) Paths { return runtime.ResolvePaths(args...) }

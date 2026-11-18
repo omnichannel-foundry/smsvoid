@@ -17,6 +17,10 @@ const (
 	ModeDevelopment Mode = "development"
 	ModeUser        Mode = "user"
 	ModeSystem      Mode = "system"
+
+	Development Mode = "development"
+	User        Mode = "user"
+	System      Mode = "system"
 )
 
 // Paths holds resolved conventional filesystem locations.
