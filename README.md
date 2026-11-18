@@ -17,18 +17,21 @@ See the detailed guides: [English documentation](docs/en/README.md) · [document
 | Accept `submit_sm` and persist the submission | Implemented |
 | `enquire_link` / `unbind` handling | Implemented |
 | Generated message IDs (24 hex chars) | Implemented |
+| Configurable simulated delivery failure | Implemented (`-fail-deliveries`) |
 | Delivery receipts (success / simulated failure) | Implemented for registered deliveries |
 | Multiple concurrent SMPP connections | Implemented |
 | SQLite and PostgreSQL backends | Implemented |
 | HTTP dashboard (`GET /`) | Implemented |
 | JSON API (`GET /api/v1/messages`, last 250) | Implemented |
 | Graceful shutdown on SIGINT/SIGTERM | Implemented |
-| SMPP authentication / system ID validation | **Not implemented** (any bind is accepted) |
-| `message_payload` TLV, optional TLVs, multipart concatenation | **Not implemented** |
-| Server-initiated `deliver_sm`, inbound MO messages | **Not implemented** |
-| HTTP authentication / authorization | **Not implemented** |
-| Pagination, filtering, search in the API | **Not implemented** |
-| Metrics / health endpoint | **Not implemented** |
+| SMPP authentication / system ID validation | Implemented (optional, via `-smpp-user`/`-smpp-pass`) |
+| `message_payload` TLV and optional TLVs | Implemented (payload used as body when present) |
+| Multipart / concatenated messages (UDH) | **Not implemented** |
+| Server-initiated `deliver_sm` (delivery receipts) | Implemented for registered deliveries |
+| Inbound MO messages | **Not implemented** |
+| HTTP basic authentication | Implemented (optional, via `-http-user`/`-http-pass`) |
+| Pagination, filtering, search in the API | Implemented (`limit`, `offset`, `source`, `destination`, `q`) |
+| Health and metrics endpoints | Implemented (`/healthz`, `/metrics`) |
 
 SmsVoid is a capture and inspection tool for development and testing. It is **not** a production SMSC and must not be exposed to untrusted networks.
 
@@ -61,6 +64,11 @@ Settings are read from environment variables first, then overridden by command-l
 | `-http-addr` | `SMSVOID_HTTP_ADDR` | `:8025` | HTTP listen address |
 | `-db-driver` | `SMSVOID_DB_DRIVER` | `sqlite` | `sqlite` or `postgres` |
 | `-db-dsn` | `SMSVOID_DB_DSN` | `smsvoid.db` | SQLite file path or PostgreSQL DSN |
+| `-smpp-user` | `SMSVOID_SMPP_USER` | _(empty)_ | SMPP bind system id; empty disables auth |
+| `-smpp-pass` | `SMSVOID_SMPP_PASS` | _(empty)_ | SMPP bind password |
+| `-http-user` | `SMSVOID_HTTP_USER` | _(empty)_ | HTTP basic auth user; empty disables auth |
+| `-http-pass` | `SMSVOID_HTTP_PASS` | _(empty)_ | HTTP basic auth password |
+| `-fail-deliveries` | `SMSVOID_FAIL_DELIVERIES` | `false` | Simulate failed delivery receipts |
 
 Examples:
 
@@ -116,9 +124,19 @@ When a `submit_sm` has `registered_delivery != 0`, SmsVoid spawns a goroutine th
 
 ## HTTP interface
 
-- `GET /` — HTML dashboard listing captured messages.
+- `GET /` — HTML dashboard listing captured messages. Accepts the same query filters as the API.
 - `GET /api/v1/messages` — JSON array of up to 250 most recent messages (newest first).
+- `GET /healthz` — JSON health check (`{"status":"ok"}`).
+- `GET /metrics` — Prometheus-style text metrics (`smsvoid_messages_total`).
 - Other methods on `/api/v1/messages` return `405 Method Not Allowed`.
+
+Query parameters (all optional):
+
+- `limit` — page size (default 250, max 1000)
+- `offset` — page offset
+- `source` — exact source address filter
+- `destination` — exact destination address filter
+- `q` — case-insensitive substring search in the message body
 
 Example:
 
@@ -225,16 +243,16 @@ Strengths:
 - Small, readable codebase with clear package boundaries.
 - Clean SMPP PDU handling with table-driven tests for parsing.
 - Dual backend support with automatic schema creation.
+- Optional SMPP and HTTP authentication.
+- Pagination, filtering, and body search in the API.
+- Health and metrics endpoints.
 - Graceful shutdown and concurrent connection handling.
 - Race-clean test suite.
 
-Known gaps and limitations (see table above):
+Remaining gaps and limitations (see table above):
 
-- No authentication on either SMPP or HTTP.
-- Incomplete SMPP feature set (no TLVs, no multipart, no MO delivery).
-- No pagination or filtering in the API.
-- No observability (metrics, health check, structured logging).
-- `FailedSubmits` is not configurable.
+- Incomplete SMPP feature set (no multipart/UDH, no inbound MO delivery).
+- No structured logging.
 - Storage timestamps are stored as driver-native values; very old SQLite files created by other tools may not sort correctly.
 
 ## License

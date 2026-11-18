@@ -8,12 +8,22 @@ import (
 	"github.com/gnrfan/smsvoid/internal/smpp"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	_ "github.com/mattn/go-sqlite3"
+	"strings"
 	"time"
 )
 
 type Store struct {
 	DB     *sql.DB
 	driver string
+}
+
+// MessageFilter controls ListFiltered results.
+type MessageFilter struct {
+	Limit       int
+	Offset      int
+	Source      string
+	Destination string
+	Query       string
 }
 
 func Open(driver, dsn string) (*Store, error) {
@@ -52,8 +62,80 @@ type Message struct {
 	DataCoding, Sequence                                  int
 }
 
+func (s *Store) Count(ctx context.Context) (int, error) {
+	var n int
+	if err := s.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM messages`).Scan(&n); err != nil {
+		return 0, err
+	}
+	return n, nil
+}
+
 func (s *Store) List(ctx context.Context) ([]Message, error) {
-	rows, e := s.DB.QueryContext(ctx, `SELECT id,received_at,remote_addr,source,destination,body,data_coding,sequence FROM messages ORDER BY received_at DESC LIMIT 250`)
+	return s.ListFiltered(ctx, MessageFilter{})
+}
+
+func (s *Store) ListFiltered(ctx context.Context, f MessageFilter) ([]Message, error) {
+	if f.Limit <= 0 {
+		f.Limit = 250
+	}
+	if f.Limit > 1000 {
+		f.Limit = 1000
+	}
+	if f.Offset < 0 {
+		f.Offset = 0
+	}
+	ph := func() string {
+		if s.driver == "postgres" {
+			return "" // replaced below per-arg
+		}
+		return "?"
+	}
+	_ = ph
+	args := []any{}
+	where := []string{}
+	addCond := func(cond string, val any) {
+		var p string
+		if s.driver == "postgres" {
+			p = fmt.Sprintf("$%d", len(args)+1)
+		} else {
+			p = "?"
+		}
+		where = append(where, fmt.Sprintf(cond, p))
+		args = append(args, val)
+	}
+	if f.Source != "" {
+		addCond("source = %s", f.Source)
+	}
+	if f.Destination != "" {
+		addCond("destination = %s", f.Destination)
+	}
+	if f.Query != "" {
+		if s.driver == "postgres" {
+			addCond("convert_from(body, 'UTF8') ILIKE %s", "%"+f.Query+"%")
+		} else {
+			addCond("CAST(body AS TEXT) LIKE %s", "%"+f.Query+"%")
+		}
+	}
+	q := `SELECT id,received_at,remote_addr,source,destination,body,data_coding,sequence FROM messages`
+	if len(where) > 0 {
+		q += " WHERE " + strings.Join(where, " AND ")
+	}
+	q += " ORDER BY received_at DESC"
+	if s.driver == "postgres" {
+		q += fmt.Sprintf(" LIMIT $%d", len(args)+1)
+	} else {
+		q += " LIMIT ?"
+	}
+	args = append(args, f.Limit)
+	if f.Offset > 0 {
+		if s.driver == "postgres" {
+			q += fmt.Sprintf(" OFFSET $%d", len(args)+1)
+		} else {
+			q += " OFFSET ?"
+		}
+		args = append(args, f.Offset)
+	}
+	rows, e := s.DB.QueryContext(ctx, q, args...)
 	if e != nil {
 		return nil, e
 	}
@@ -76,6 +158,7 @@ func (s *Store) List(ctx context.Context) ([]Message, error) {
 	}
 	return out, rows.Err()
 }
+
 func (s *Store) Close() error {
 	if s.DB == nil {
 		return fmt.Errorf("nil database")

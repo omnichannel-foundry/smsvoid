@@ -39,6 +39,8 @@ type Handler interface {
 type Server struct {
 	Addr          string
 	Handler       Handler
+	AuthUser      string
+	AuthPass      string
 	ln            net.Listener
 	mu            sync.Mutex
 	conns         map[net.Conn]struct{}
@@ -106,6 +108,23 @@ func (s *Server) serve(c net.Conn) {
 			if bound {
 				out = response(id, 5, seq, nil)
 			} else {
+				systemID, password := "", ""
+				i := 0
+				if v, e := cstring(b, &i); e == nil {
+					systemID = v
+				}
+				if v, e := cstring(b, &i); e == nil {
+					password = v
+				}
+				if s.AuthUser != "" || s.AuthPass != "" {
+					if systemID != s.AuthUser || password != s.AuthPass {
+						out = response(id, 14, seq, nil)
+						if _, e := c.Write(out); e != nil {
+							return
+						}
+						continue
+					}
+				}
 				bound = true
 				out = response(id, 0, seq, []byte("smsvoid\x00"))
 			}
@@ -215,6 +234,20 @@ func parseSubmit(b []byte, seq uint32) (Message, error) {
 		return m, fmt.Errorf("invalid short_message length")
 	}
 	m.Body = append([]byte(nil), b[i:i+n]...)
+	i += n
+	// Optional TLVs (including message_payload, tag 0x0424).
+	for i+4 <= len(b) {
+		tag := binary.BigEndian.Uint16(b[i:])
+		length := int(binary.BigEndian.Uint16(b[i+2:]))
+		i += 4
+		if length < 0 || i+length > len(b) {
+			break
+		}
+		if tag == 0x0424 {
+			m.Body = append([]byte(nil), b[i:i+length]...)
+		}
+		i += length
+	}
 	return m, nil
 }
 

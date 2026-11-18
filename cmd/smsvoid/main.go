@@ -28,10 +28,10 @@ func main() {
 	defer db.Close()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	s := &smpp.Server{Addr: c.SMPPAddr, Handler: &app.Service{Store: db}}
+	s := &smpp.Server{Addr: c.SMPPAddr, Handler: &app.Service{Store: db}, AuthUser: c.SMPPUser, AuthPass: c.SMPPPass, FailedSubmits: c.FailDeliveries}
 	errch := make(chan error, 2)
 	go func() { errch <- s.ListenAndServe() }()
-	httpSrv := &http.Server{Addr: c.HTTPAddr, Handler: (&web.Server{Store: db}).Handler()}
+	httpSrv := &http.Server{Addr: c.HTTPAddr, Handler: (&web.Server{Store: db, User: c.HTTPUser, Pass: c.HTTPPass}).Handler()}
 	go func() { errch <- httpSrv.ListenAndServe() }()
 	log.Printf("SMPP listening on %s; HTTP on %s", c.SMPPAddr, c.HTTPAddr)
 	select {
